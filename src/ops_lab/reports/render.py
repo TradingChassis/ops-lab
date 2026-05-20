@@ -59,3 +59,38 @@ def render_backtest_nautilus_smoke_report(
         "No profitability claims are made.\n"
         "No orders, fills, or PnL metrics are produced by this artifact contract.\n"
     )
+
+
+def render_paper_skeleton_report(
+    *,
+    run_id: str,
+    mode: str,
+    engine: str,
+    status: str,
+    config_sha256: str,
+    heartbeat_count: int,
+    connectivity: str,
+) -> str:
+    """Render the Slice 6 paper lifecycle skeleton report markdown."""
+    return (
+        f"# Paper Skeleton Report: {run_id}\n\n"
+        f"- mode: {mode}\n"
+        f"- engine: {engine}\n"
+        f"- status: {status}\n"
+        f"- config_sha256: {config_sha256}\n"
+        f"- heartbeat_count: {heartbeat_count}\n"
+        f"- connectivity: {connectivity}\n\n"
+        "## Skeleton Session Summary\n\n"
+        "This run completed a bounded synthetic paper lifecycle with deterministic heartbeats.\n"
+        "No exchange or testnet integration is performed in this slice.\n\n"
+        "## Explicit Non-Features\n\n"
+        "- no exchange/testnet connection\n"
+        "- no API keys or secrets\n"
+        "- no live market data\n"
+        "- no orders\n"
+        "- no fills\n"
+        "- no strategy execution\n\n"
+        "## Disclaimer\n\n"
+        "This is not paper trading connectivity.\n"
+        "This is only a lifecycle skeleton.\n"
+    )

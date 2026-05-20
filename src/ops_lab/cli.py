@@ -17,6 +17,7 @@ from ops_lab.runs.backtest import InvalidBacktestModeError, run_backtest_lifecyc
 from ops_lab.runs.hashing import compute_config_sha256
 from ops_lab.runs.journal import append_journal_event, build_run_initialized_event
 from ops_lab.runs.metadata import build_initial_metadata, write_metadata
+from ops_lab.runs.paper import InvalidPaperModeError, run_paper_lifecycle
 from ops_lab.runs.spec import RunSpecLoadError, load_run_spec
 
 app = typer.Typer(help="ops-lab command line interface.")
@@ -105,6 +106,26 @@ def run_backtest(spec: Path = typer.Option(..., "--spec", help="Path to run spec
         raise typer.Exit(1) from exc
 
     typer.echo(f"Backtest lifecycle artifacts at {artifacts_dir.resolve()}")
+    typer.echo(f"config_sha256={config_sha256}")
+    typer.echo("status=completed")
+
+
+@run_app.command("paper")
+def run_paper(spec: Path = typer.Option(..., "--spec", help="Path to run spec YAML.")) -> None:
+    """Run a bounded deterministic paper lifecycle skeleton and persist artifacts."""
+    try:
+        artifacts_dir, config_sha256 = run_paper_lifecycle(spec)
+    except (RunSpecLoadError, InvalidPaperModeError) as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(1) from exc
+    except RunArtifactsAlreadyExistError as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(1) from exc
+    except Exception as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(1) from exc
+
+    typer.echo(f"Paper lifecycle artifacts at {artifacts_dir.resolve()}")
     typer.echo(f"config_sha256={config_sha256}")
     typer.echo("status=completed")
 

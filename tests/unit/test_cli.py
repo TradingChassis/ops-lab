@@ -248,6 +248,147 @@ def test_tc_run_backtest_failure_writes_failed_metadata(tmp_path: Path, monkeypa
     ]
 
 
+def test_tc_run_paper_creates_lifecycle_artifacts(tmp_path: Path, monkeypatch) -> None:
+    """Paper command creates deterministic Slice 6 skeleton lifecycle artifact set."""
+    monkeypatch.chdir(tmp_path)
+    spec_path = tmp_path / "paper.yaml"
+    _write_valid_spec(spec_path, run_id="slice6-paper-run", mode="paper")
+
+    result = runner.invoke(app, ["run", "paper", "--spec", str(spec_path)])
+    assert result.exit_code == 0
+    assert "Paper lifecycle artifacts at" in result.stdout
+    assert "config_sha256=" in result.stdout
+    assert "status=completed" in result.stdout
+
+    run_dir = tmp_path / "artifacts" / "runs" / "slice6-paper-run"
+    assert run_dir.is_dir()
+    assert (run_dir / "run_spec.yaml").is_file()
+    assert (run_dir / "metadata.json").is_file()
+    assert (run_dir / "journal.jsonl").is_file()
+    assert (run_dir / "metrics.json").is_file()
+    assert (run_dir / "report.md").is_file()
+
+    metadata = json.loads((run_dir / "metadata.json").read_text(encoding="utf-8"))
+    assert metadata["status"] == "completed"
+    assert metadata["started_at_utc"]
+    assert metadata["completed_at_utc"]
+    assert metadata["lifecycle"] == "paper_skeleton"
+    assert metadata["is_placeholder"] is True
+    assert metadata["paper_execution"]["status"] == "completed"
+    assert metadata["paper_execution"]["engine"] == "nautilus"
+    assert metadata["paper_execution"]["connectivity"] == "none"
+    assert metadata["paper_execution"]["session_type"] == "synthetic_heartbeat"
+    assert metadata["paper_execution"]["error"] is None
+
+    journal_lines = (run_dir / "journal.jsonl").read_text(encoding="utf-8").splitlines()
+    assert len(journal_lines) == 7
+    journal = [json.loads(line) for line in journal_lines]
+    assert [entry["event"] for entry in journal] == [
+        "run_started",
+        "paper_started",
+        "paper_heartbeat",
+        "paper_heartbeat",
+        "paper_heartbeat",
+        "paper_completed",
+        "run_completed",
+    ]
+    assert all(entry["event"] != "run_initialized" for entry in journal)
+    assert (
+        journal[1]["note"] == "paper skeleton lifecycle started; no exchange/testnet connectivity"
+    )
+    for index, heartbeat in enumerate(journal[2:5], start=1):
+        assert heartbeat["heartbeat_index"] == index
+        assert heartbeat["heartbeat_total"] == 3
+        assert heartbeat["synthetic"] is True
+    assert journal[5]["result"] == "paper_skeleton_completed"
+    assert journal[5]["heartbeat_count"] == 3
+    assert journal[6]["status"] == "completed"
+
+    metrics = json.loads((run_dir / "metrics.json").read_text(encoding="utf-8"))
+    assert metrics["status"] == "completed"
+    assert metrics["is_placeholder"] is True
+    assert metrics["engine_executed"] is False
+    assert metrics["connectivity"] == "none"
+    assert metrics["paper_lifecycle"] == "synthetic_heartbeat"
+    assert metrics["heartbeat_count"] == 3
+    assert metrics["synthetic_duration_seconds"] == 3
+    assert metrics["metrics"] == {}
+
+    report = (run_dir / "report.md").read_text(encoding="utf-8")
+    assert "Paper Skeleton Report" in report
+    assert "no exchange/testnet connection" in report
+    assert "no API keys or secrets" in report
+    assert "no live market data" in report
+    assert "no orders" in report
+    assert "no fills" in report
+    assert "no strategy execution" in report
+    assert "not paper trading connectivity" in report
+
+
+def test_tc_run_paper_fails_for_backtest_mode(tmp_path: Path, monkeypatch) -> None:
+    """Paper command rejects specs that are not mode=paper."""
+    monkeypatch.chdir(tmp_path)
+    spec_path = tmp_path / "backtest.yaml"
+    _write_valid_spec(spec_path, run_id="slice6-backtest-spec", mode="backtest")
+
+    result = runner.invoke(app, ["run", "paper", "--spec", str(spec_path)])
+    assert result.exit_code != 0
+    assert "Spec mode must be paper" in result.stderr
+
+
+def test_tc_run_paper_fails_for_duplicate_run_id(tmp_path: Path, monkeypatch) -> None:
+    """Paper command fails cleanly when run artifacts already exist."""
+    monkeypatch.chdir(tmp_path)
+    spec_path = tmp_path / "dup-paper.yaml"
+    _write_valid_spec(spec_path, run_id="slice6-paper-duplicate", mode="paper")
+
+    first = runner.invoke(app, ["run", "paper", "--spec", str(spec_path)])
+    second = runner.invoke(app, ["run", "paper", "--spec", str(spec_path)])
+
+    assert first.exit_code == 0
+    assert second.exit_code != 0
+    assert "Run artifacts already exist" in second.stderr
+
+
+def test_tc_run_paper_failure_writes_failed_metadata(tmp_path: Path, monkeypatch) -> None:
+    """Paper command marks run failed and appends run_failed journal event."""
+    monkeypatch.chdir(tmp_path)
+    spec_path = tmp_path / "paper-failure.yaml"
+    _write_valid_spec(spec_path, run_id="slice6-paper-failure", mode="paper")
+
+    def _raise_heartbeat_failure(**kwargs):
+        del kwargs
+        raise RuntimeError("forced paper heartbeat failure")
+
+    monkeypatch.setattr(
+        "ops_lab.runs.paper._append_synthetic_heartbeat_events",
+        _raise_heartbeat_failure,
+    )
+    result = runner.invoke(app, ["run", "paper", "--spec", str(spec_path)])
+    assert result.exit_code != 0
+
+    run_dir = tmp_path / "artifacts" / "runs" / "slice6-paper-failure"
+    assert run_dir.is_dir()
+
+    metadata = json.loads((run_dir / "metadata.json").read_text(encoding="utf-8"))
+    assert metadata["status"] == "failed"
+    assert metadata["lifecycle"] == "paper_skeleton"
+    assert metadata["paper_execution"]["status"] == "failed"
+    assert "forced paper heartbeat failure" in metadata["paper_execution"]["error"]
+    assert metadata["paper_execution"]["completed_at_utc"]
+    assert "completed_at_utc" in metadata
+
+    journal_lines = (run_dir / "journal.jsonl").read_text(encoding="utf-8").splitlines()
+    journal = [json.loads(line) for line in journal_lines]
+    assert [entry["event"] for entry in journal] == [
+        "run_started",
+        "paper_started",
+        "run_failed",
+    ]
+    assert journal[-1]["status"] == "failed"
+    assert "forced paper heartbeat failure" in journal[-1]["error"]
+
+
 def test_tc_data_prepare_succeeds_and_is_idempotent(tmp_path: Path, monkeypatch) -> None:
     """Data prepare command succeeds repeatedly for the supported dataset."""
     data_root = tmp_path / "runtime-data"

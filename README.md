@@ -72,3 +72,14 @@ This command runs a minimal NautilusTrader engine smoke backtest and writes life
 It loads prepared fixture candles and converts them to Nautilus bars before execution.
 This is not a validated strategy performance report.
 No profitability claims are made, and no orders/fills/PnL metrics are produced.
+
+## Slice 6 paper lifecycle skeleton
+
+Run the bounded deterministic paper-mode lifecycle skeleton from a validated spec:
+
+```bash
+tc run paper --spec examples/configs/btcusdt_paper.yaml
+```
+
+This command writes paper lifecycle skeleton artifacts only.
+It does not connect to any exchange or testnet and does not execute paper trading connectivity.
