@@ -653,3 +653,295 @@ def test_tc_kill_status_fails_for_malformed_state_file(tmp_path: Path, monkeypat
     result = runner.invoke(app, ["kill", "status", "--run-id", run_id])
     assert result.exit_code != 0
     assert "Malformed JSON in kill switch state file" in result.stderr
+
+
+def _write_reconciliation_state(path: Path, *, run_id: str, freshness_max_age_seconds: int) -> None:
+    payload = {
+        "schema_version": "v1",
+        "run_id": run_id,
+        "as_of_utc": "2026-05-21T00:00:00Z",
+        "position": {
+            "symbol": "BTCUSDT",
+            "side": "flat",
+            "qty": "0",
+            "avg_entry_price": None,
+        },
+        "open_orders": [],
+        "freshness": {
+            "position_ts_utc": "2026-05-21T00:00:00Z",
+            "orders_ts_utc": "2026-05-21T00:00:00Z",
+            "max_age_seconds": freshness_max_age_seconds,
+        },
+    }
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def test_tc_reconcile_check_ok_writes_result_file(tmp_path: Path, monkeypatch) -> None:
+    """Reconcile check exits zero for matching expected/observed fixtures."""
+    monkeypatch.chdir(tmp_path)
+    run_id = "slice9-cli-ok"
+    run_dir = tmp_path / "artifacts" / "runs" / run_id
+    run_dir.mkdir(parents=True)
+
+    expected_path = tmp_path / "expected.json"
+    observed_path = tmp_path / "observed.json"
+    _write_reconciliation_state(
+        expected_path,
+        run_id=run_id,
+        freshness_max_age_seconds=999999999,
+    )
+    _write_reconciliation_state(
+        observed_path,
+        run_id=run_id,
+        freshness_max_age_seconds=999999999,
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "reconcile",
+            "check",
+            "--run-id",
+            run_id,
+            "--expected",
+            str(expected_path),
+            "--observed",
+            str(observed_path),
+        ],
+    )
+    assert result.exit_code == 0
+    assert f"run_id={run_id}" in result.stdout
+    assert "status=ok" in result.stdout
+    assert "summary_ok=3" in result.stdout
+    assert (run_dir / "reconciliation_result.json").is_file()
+
+
+def test_tc_reconcile_check_mismatch_exits_non_zero(tmp_path: Path, monkeypatch) -> None:
+    """Reconcile check exits non-zero for mismatching open orders."""
+    monkeypatch.chdir(tmp_path)
+    run_id = "slice9-cli-mismatch"
+    run_dir = tmp_path / "artifacts" / "runs" / run_id
+    run_dir.mkdir(parents=True)
+
+    expected_path = tmp_path / "expected.json"
+    observed_path = tmp_path / "observed.json"
+    _write_reconciliation_state(
+        expected_path,
+        run_id=run_id,
+        freshness_max_age_seconds=999999999,
+    )
+    _write_reconciliation_state(
+        observed_path,
+        run_id=run_id,
+        freshness_max_age_seconds=999999999,
+    )
+    expected_payload = json.loads(expected_path.read_text(encoding="utf-8"))
+    expected_payload["open_orders"] = [
+        {
+            "order_id": "a-1",
+            "symbol": "BTCUSDT",
+            "side": "buy",
+            "type": "limit",
+            "qty": "0.2",
+            "price": "101.0",
+        }
+    ]
+    expected_path.write_text(
+        json.dumps(expected_payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "reconcile",
+            "check",
+            "--run-id",
+            run_id,
+            "--expected",
+            str(expected_path),
+            "--observed",
+            str(observed_path),
+        ],
+    )
+    assert result.exit_code != 0
+    assert "status=mismatch" in result.stdout
+    assert "summary_mismatch=1" in result.stdout
+    assert (run_dir / "reconciliation_result.json").is_file()
+
+
+def test_tc_reconcile_check_warning_exits_zero(tmp_path: Path, monkeypatch) -> None:
+    """Reconcile check exits zero for warning-only freshness staleness."""
+    monkeypatch.chdir(tmp_path)
+    run_id = "slice9-cli-warning"
+    (tmp_path / "artifacts" / "runs" / run_id).mkdir(parents=True)
+
+    expected_path = tmp_path / "expected.json"
+    observed_path = tmp_path / "observed.json"
+    _write_reconciliation_state(expected_path, run_id=run_id, freshness_max_age_seconds=999999999)
+    _write_reconciliation_state(observed_path, run_id=run_id, freshness_max_age_seconds=1)
+    observed_payload = json.loads(observed_path.read_text(encoding="utf-8"))
+    observed_payload["freshness"]["position_ts_utc"] = "2000-01-01T00:00:00Z"
+    observed_payload["freshness"]["orders_ts_utc"] = "2000-01-01T00:00:00Z"
+    observed_path.write_text(
+        json.dumps(observed_payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "reconcile",
+            "check",
+            "--run-id",
+            run_id,
+            "--expected",
+            str(expected_path),
+            "--observed",
+            str(observed_path),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "status=warning" in result.stdout
+    assert "summary_warning=1" in result.stdout
+
+
+def test_tc_reconcile_check_unknown_exits_non_zero(tmp_path: Path, monkeypatch) -> None:
+    """Reconcile check exits non-zero when freshness data is insufficient."""
+    monkeypatch.chdir(tmp_path)
+    run_id = "slice9-cli-unknown"
+    (tmp_path / "artifacts" / "runs" / run_id).mkdir(parents=True)
+
+    expected_path = tmp_path / "expected.json"
+    observed_path = tmp_path / "observed.json"
+    _write_reconciliation_state(expected_path, run_id=run_id, freshness_max_age_seconds=999999999)
+    _write_reconciliation_state(observed_path, run_id=run_id, freshness_max_age_seconds=999999999)
+    expected_payload = json.loads(expected_path.read_text(encoding="utf-8"))
+    observed_payload = json.loads(observed_path.read_text(encoding="utf-8"))
+    expected_payload.pop("freshness")
+    observed_payload.pop("freshness")
+    expected_path.write_text(
+        json.dumps(expected_payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    observed_path.write_text(
+        json.dumps(observed_payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "reconcile",
+            "check",
+            "--run-id",
+            run_id,
+            "--expected",
+            str(expected_path),
+            "--observed",
+            str(observed_path),
+        ],
+    )
+    assert result.exit_code != 0
+    assert "status=unknown" in result.stdout
+    assert "summary_unknown=1" in result.stdout
+
+
+def test_tc_reconcile_check_run_id_mismatch_fails(tmp_path: Path, monkeypatch) -> None:
+    """Reconcile check fails clearly when payload run_id mismatches CLI run_id."""
+    monkeypatch.chdir(tmp_path)
+    run_id = "slice9-cli-run-id"
+    (tmp_path / "artifacts" / "runs" / run_id).mkdir(parents=True)
+
+    expected_path = tmp_path / "expected.json"
+    observed_path = tmp_path / "observed.json"
+    _write_reconciliation_state(expected_path, run_id=run_id, freshness_max_age_seconds=999999999)
+    _write_reconciliation_state(
+        observed_path,
+        run_id="different-run-id",
+        freshness_max_age_seconds=999999999,
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "reconcile",
+            "check",
+            "--run-id",
+            run_id,
+            "--expected",
+            str(expected_path),
+            "--observed",
+            str(observed_path),
+        ],
+    )
+    assert result.exit_code != 0
+    assert "run_id mismatch" in result.stderr
+
+
+def test_tc_reconcile_check_missing_run_directory_fails(tmp_path: Path, monkeypatch) -> None:
+    """Reconcile check fails when run artifact directory does not exist."""
+    monkeypatch.chdir(tmp_path)
+    run_id = "slice9-cli-missing-run-dir"
+    expected_path = tmp_path / "expected.json"
+    observed_path = tmp_path / "observed.json"
+    _write_reconciliation_state(expected_path, run_id=run_id, freshness_max_age_seconds=999999999)
+    _write_reconciliation_state(observed_path, run_id=run_id, freshness_max_age_seconds=999999999)
+
+    result = runner.invoke(
+        app,
+        [
+            "reconcile",
+            "check",
+            "--run-id",
+            run_id,
+            "--expected",
+            str(expected_path),
+            "--observed",
+            str(observed_path),
+        ],
+    )
+    assert result.exit_code != 0
+    assert "Run artifacts directory not found" in result.stderr
+
+
+def test_tc_reconcile_check_appends_journal_when_present(tmp_path: Path, monkeypatch) -> None:
+    """Reconcile check appends compact reconciliation event when journal exists."""
+    monkeypatch.chdir(tmp_path)
+    run_id = "slice9-cli-journal"
+    run_dir = tmp_path / "artifacts" / "runs" / run_id
+    run_dir.mkdir(parents=True)
+    journal_path = run_dir / "journal.jsonl"
+    journal_path.write_text('{"event":"run_started"}\n', encoding="utf-8")
+
+    expected_path = tmp_path / "expected.json"
+    observed_path = tmp_path / "observed.json"
+    _write_reconciliation_state(
+        expected_path,
+        run_id=run_id,
+        freshness_max_age_seconds=999999999,
+    )
+    _write_reconciliation_state(
+        observed_path,
+        run_id=run_id,
+        freshness_max_age_seconds=999999999,
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "reconcile",
+            "check",
+            "--run-id",
+            run_id,
+            "--expected",
+            str(expected_path),
+            "--observed",
+            str(observed_path),
+        ],
+    )
+    assert result.exit_code == 0
+    lines = journal_path.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 2
+    payload = json.loads(lines[-1])
+    assert payload["event"] == "reconciliation_checked"

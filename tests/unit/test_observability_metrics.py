@@ -247,6 +247,96 @@ def test_malformed_json_or_jsonl_fails_clearly(tmp_path: Path) -> None:
     with pytest.raises(RunArtifactsParseError):
         export_run_metrics(run_id=run_id, artifacts_root=artifacts_root)
 
+
+def test_reconciliation_metrics_emitted_when_result_exists(tmp_path: Path) -> None:
+    artifacts_root = tmp_path / "artifacts" / "runs"
+    run_id = "slice9-reconciliation-metrics"
+    run_dir = _write_run_artifacts(
+        artifacts_root=artifacts_root,
+        run_id=run_id,
+        metadata={
+            "run_id": run_id,
+            "mode": "paper",
+            "engine": "nautilus",
+            "venue": "binance_testnet",
+            "instrument": "BTCUSDT",
+            "status": "completed",
+            "created_at_utc": "2026-05-20T19:00:00Z",
+            "data": {"dataset": "btcusdt-sample"},
+        },
+        metrics={"is_placeholder": True, "engine_executed": False},
+        journal_lines=[{"event": "run_started"}],
+    )
+    (run_dir / "reconciliation_result.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "v1",
+                "run_id": run_id,
+                "ts_utc": "2026-05-21T00:01:00Z",
+                "status": "warning",
+                "summary": {"ok": 2, "warning": 1, "mismatch": 0, "unknown": 0},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    rendered = export_run_metrics(run_id=run_id, artifacts_root=artifacts_root)
+    assert "ops_lab_reconciliation_status{" in rendered
+    assert 'run_id="slice9-reconciliation-metrics"' in rendered
+    assert 'status="warning"} 1' in rendered
+    assert "ops_lab_reconciliation_checks_total{" in rendered
+    assert 'severity="warning"} 1' in rendered
+    assert "ops_lab_reconciliation_last_timestamp_seconds{" in rendered
+
+
+def test_reconciliation_metrics_omitted_when_result_missing(tmp_path: Path) -> None:
+    artifacts_root = tmp_path / "artifacts" / "runs"
+    run_id = "slice9-no-reconciliation-metrics"
+    _write_run_artifacts(
+        artifacts_root=artifacts_root,
+        run_id=run_id,
+        metadata={
+            "run_id": run_id,
+            "mode": "backtest",
+            "engine": "nautilus",
+            "venue": "binance",
+            "instrument": "BTCUSDT",
+            "status": "completed",
+            "created_at_utc": "2026-05-20T19:00:00Z",
+            "data": {"dataset": "btcusdt-sample"},
+        },
+        metrics={"is_placeholder": False, "engine_executed": True},
+    )
+
+    rendered = export_run_metrics(run_id=run_id, artifacts_root=artifacts_root)
+    assert "ops_lab_reconciliation_status" not in rendered
+    assert "ops_lab_reconciliation_checks_total" not in rendered
+    assert "ops_lab_reconciliation_last_timestamp_seconds" not in rendered
+
+
+def test_malformed_reconciliation_result_fails_clearly(tmp_path: Path) -> None:
+    artifacts_root = tmp_path / "artifacts" / "runs"
+    run_id = "slice9-malformed-reconciliation"
+    run_dir = _write_run_artifacts(
+        artifacts_root=artifacts_root,
+        run_id=run_id,
+        metadata={
+            "run_id": run_id,
+            "mode": "backtest",
+            "engine": "nautilus",
+            "venue": "binance",
+            "instrument": "BTCUSDT",
+            "status": "completed",
+            "created_at_utc": "2026-05-20T19:00:00Z",
+            "data": {"dataset": "btcusdt-sample"},
+        },
+        metrics={"is_placeholder": False, "engine_executed": True},
+    )
+    (run_dir / "reconciliation_result.json").write_text("{bad-json", encoding="utf-8")
+
+    with pytest.raises(RunArtifactsParseError):
+        export_run_metrics(run_id=run_id, artifacts_root=artifacts_root)
+
     (run_dir / "metadata.json").write_text("{}", encoding="utf-8")
     (run_dir / "metrics.json").write_text("{}", encoding="utf-8")
     (run_dir / "journal.jsonl").write_text('{"event":"ok"}\n{bad-json\n', encoding="utf-8")

@@ -35,6 +35,7 @@ class RunObservabilityArtifacts:
     metadata: dict[str, Any]
     metrics: dict[str, Any]
     journal_events: list[dict[str, Any]]
+    reconciliation_result: dict[str, Any] | None
     include_journal: bool
 
 
@@ -77,6 +78,20 @@ def _load_journal_events(path: Path) -> list[dict[str, Any]]:
     return events
 
 
+def _load_json_optional(path: Path, *, field_name: str) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    if not path.is_file():
+        raise RunArtifactsParseError(f"Expected {field_name} file at {path}")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise RunArtifactsParseError(f"Malformed JSON in {path}: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise RunArtifactsParseError(f"Expected JSON object in {path}")
+    return payload
+
+
 def load_run_observability_artifacts(
     run_id: str,
     artifacts_root: Path = Path("artifacts/runs"),
@@ -90,6 +105,10 @@ def load_run_observability_artifacts(
     metadata = _load_json_required(run_dir / "metadata.json", field_name="metadata.json")
     metrics = _load_json_required(run_dir / "metrics.json", field_name="metrics.json")
     journal_events = _load_journal_events(run_dir / "journal.jsonl") if include_journal else []
+    reconciliation_result = _load_json_optional(
+        run_dir / "reconciliation_result.json",
+        field_name="reconciliation_result.json",
+    )
 
     return RunObservabilityArtifacts(
         run_id=run_id,
@@ -97,6 +116,7 @@ def load_run_observability_artifacts(
         metadata=metadata,
         metrics=metrics,
         journal_events=journal_events,
+        reconciliation_result=reconciliation_result,
         include_journal=include_journal,
     )
 
@@ -272,6 +292,50 @@ def render_prometheus_text(artifacts: RunObservabilityArtifacts) -> str:
                 labels=core_labels + [("event", event_name)],
                 value=event_counts[event_name],
             )
+
+    if artifacts.reconciliation_result is not None:
+        reconciliation = artifacts.reconciliation_result
+        status = reconciliation.get("status")
+        if status not in {"ok", "warning", "mismatch", "unknown"}:
+            raise RunArtifactsParseError(
+                "Malformed reconciliation_result.json: invalid status field."
+            )
+        _append_metric(
+            lines,
+            name="ops_lab_reconciliation_status",
+            labels=core_labels + [("status", status)],
+            value=1,
+        )
+
+        summary = reconciliation.get("summary")
+        if not isinstance(summary, dict):
+            raise RunArtifactsParseError(
+                "Malformed reconciliation_result.json: summary must be an object."
+            )
+        for severity in ("ok", "warning", "mismatch", "unknown"):
+            value = summary.get(severity)
+            if not isinstance(value, int):
+                raise RunArtifactsParseError(
+                    f"Malformed reconciliation_result.json: summary.{severity} must be integer."
+                )
+            _append_metric(
+                lines,
+                name="ops_lab_reconciliation_checks_total",
+                labels=core_labels + [("severity", severity)],
+                value=value,
+            )
+
+        ts_seconds = _parse_iso8601_to_seconds(reconciliation.get("ts_utc"))
+        if ts_seconds is None:
+            raise RunArtifactsParseError(
+                "Malformed reconciliation_result.json: ts_utc must be valid ISO-8601 timestamp."
+            )
+        _append_metric(
+            lines,
+            name="ops_lab_reconciliation_last_timestamp_seconds",
+            labels=core_labels,
+            value=ts_seconds,
+        )
 
     return "\n".join(lines) + "\n"
 

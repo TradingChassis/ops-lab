@@ -1,1 +1,1 @@
-"""Reconciliation placeholders for future slices."""
+"""File-based reconciliation package."""
