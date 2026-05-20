@@ -17,6 +17,7 @@ from ops_lab.observability.metrics import (
     RunObservabilityError,
     export_run_metrics,
 )
+from ops_lab.reconciliation.checks import ReconciliationError, run_reconciliation_check
 from ops_lab.runs.artifacts import RunArtifactsAlreadyExistError, initialize_run_artifacts
 from ops_lab.runs.backtest import InvalidBacktestModeError, run_backtest_lifecycle
 from ops_lab.runs.hashing import compute_config_sha256
@@ -37,11 +38,13 @@ run_app = typer.Typer(help="Run initialization commands.")
 data_app = typer.Typer(help="Local dataset preparation and fingerprint commands.")
 metrics_app = typer.Typer(help="Run artifact metrics export commands.")
 kill_app = typer.Typer(help="File-based kill switch safety commands.")
+reconcile_app = typer.Typer(help="File-based reconciliation commands.")
 app.add_typer(spec_app, name="spec")
 app.add_typer(run_app, name="run")
 app.add_typer(data_app, name="data")
 app.add_typer(metrics_app, name="metrics")
 app.add_typer(kill_app, name="kill")
+app.add_typer(reconcile_app, name="reconcile")
 
 
 @app.callback()
@@ -352,3 +355,41 @@ def kill_clear(
     typer.echo(f"reason={state.last_reason}")
     typer.echo(f"actor={state.last_actor}")
     typer.echo(f"state_path={(runtime_root / f'{state.run_id}.state.json').resolve()}")
+
+
+@reconcile_app.command("check")
+def reconcile_check(
+    run_id: str = typer.Option(..., "--run-id", help="Run ID for reconciliation artifact output."),
+    expected: Path = typer.Option(..., "--expected", help="Expected state JSON fixture path."),
+    observed: Path = typer.Option(..., "--observed", help="Observed state JSON fixture path."),
+) -> None:
+    """Run deterministic file-based reconciliation from local JSON fixtures."""
+    try:
+        result = run_reconciliation_check(
+            run_id=run_id,
+            expected_path=expected,
+            observed_path=observed,
+        )
+    except ReconciliationError as exc:
+        typer.secho(str(exc), fg=typer.colors.RED, err=True)
+        raise typer.Exit(1) from exc
+
+    typer.echo(f"run_id={result['run_id']}")
+    typer.echo(f"status={result['status']}")
+    typer.echo(f"pass={str(result['pass']).lower()}")
+    summary = result["summary"]
+    typer.echo(f"summary_ok={summary['ok']}")
+    typer.echo(f"summary_warning={summary['warning']}")
+    typer.echo(f"summary_mismatch={summary['mismatch']}")
+    typer.echo(f"summary_unknown={summary['unknown']}")
+    result_path = Path("artifacts/runs") / result["run_id"] / "reconciliation_result.json"
+    typer.echo(f"result_path={result_path}")
+    for check in result["checks"]:
+        matched = str(check["matched"]).lower()
+        typer.echo(
+            f"check_{check['name']}={check['severity']} "
+            f"matched={matched} details={check['details']}"
+        )
+
+    if result["status"] in {"mismatch", "unknown"}:
+        raise typer.Exit(1)

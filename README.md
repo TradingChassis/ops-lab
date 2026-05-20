@@ -110,3 +110,15 @@ tc kill clear --run-id <run_id> --reason "manual reset"
 
 This is a file-based operational safety signal for local workflows.
 It does not cancel orders, flatten positions, or connect to exchanges.
+
+## Slice 9 file-based reconciliation
+
+Run deterministic local reconciliation from JSON fixtures:
+
+```bash
+tc reconcile check --run-id <run_id> --expected <path> --observed <path>
+```
+
+Slice 9 reconciliation is file-based and local-only.
+It does not connect to exchanges, does not use API keys/secrets, and has no trading side effects.
+It writes `reconciliation_result.json` into the run artifact directory and is report-only (no automatic kill switch activation).
