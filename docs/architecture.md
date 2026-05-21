@@ -10,12 +10,12 @@ For the runnable local demo flow, see [Demo Flow](demo-flow.md).
 %%{init: {
   "theme": "base",
   "themeVariables": {
-    "fontSize": "12px"
+    "fontSize": "14px"
   },
   "flowchart": {
-    "nodeSpacing": 25,
-    "rankSpacing": 35,
-    "padding": 8
+    "nodeSpacing": 32,
+    "rankSpacing": 42,
+    "padding": 12
   }
 }}%%
 
