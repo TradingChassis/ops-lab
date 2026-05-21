@@ -4,12 +4,14 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
-
-  "workspaceFolder": "/workspaces/tradingchassis-ops-lab",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:2": {}
+  },
+  "workspaceFolder": "/workspaces/ops-lab",
   "remoteUser": "root",
   "runArgs": ["--security-opt=label=disable"],
+  "forwardPorts": [8000, 9090, 3000],
   "containerEnv": {
     "SHELL": "/bin/bash"
   }
-
 }
