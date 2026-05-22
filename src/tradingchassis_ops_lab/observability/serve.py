@@ -6,7 +6,7 @@ from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from ops_lab.observability.metrics import render_metrics_text
+from tradingchassis_ops_lab.observability.metrics import render_metrics_text
 
 PROMETHEUS_TEXT_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 

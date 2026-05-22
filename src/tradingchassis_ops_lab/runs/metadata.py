@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from ops_lab.runs.spec import RunSpec
+from tradingchassis_ops_lab.runs.spec import RunSpec
 
 
 def _utc_now_iso8601() -> str:

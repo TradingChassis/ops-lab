@@ -34,6 +34,8 @@ def test_devcontainer_config_enables_docker_and_forwarded_ports() -> None:
     assert isinstance(forward_ports, list)
     assert set(forward_ports) >= {8000, 9090, 3000}
 
+    assert config.get("postCreateCommand") == 'python -m pip install -e ".[dev]"'
+
 
 def test_devcontainer_readme_documents_local_observability_workflow() -> None:
     readme_path = _repo_root() / ".devcontainer/README.md"
@@ -50,7 +52,7 @@ def test_devcontainer_readme_documents_local_observability_workflow() -> None:
     assert "on host" in content.lower()
     assert "http://localhost:${TC_PROMETHEUS_PORT:-9090}/targets" in content
     assert "http://localhost:${TC_GRAFANA_PORT:-3000}" in content
-    assert "ops_lab_metrics" in content
+    assert "tradingchassis_ops_lab_metrics" in content
     assert "--host 0.0.0.0" in content
     assert "docker compose version" in content
     assert "unavailable inside the Dev Container" in content

@@ -1,4 +1,4 @@
-"""CLI entry point for ops_lab."""
+"""CLI entry point for tradingchassis_ops_lab."""
 
 import json
 import os
@@ -6,34 +6,40 @@ from pathlib import Path
 
 import typer
 
-from ops_lab import __version__
-from ops_lab.data.fingerprint import (
+from tradingchassis_ops_lab import __version__
+from tradingchassis_ops_lab.data.fingerprint import (
     PreparedDatasetNotFoundError,
     fingerprint_dataset,
     write_fingerprint,
 )
-from ops_lab.data.prepare import UnsupportedDatasetError, prepare_dataset
-from ops_lab.drills import (
+from tradingchassis_ops_lab.data.prepare import UnsupportedDatasetError, prepare_dataset
+from tradingchassis_ops_lab.drills import (
     DrillArtifactsError,
     DrillValidationError,
     execute_reconciliation_mismatch_drill,
     execute_restart_recovery_drill,
     execute_stale_market_data_drill,
 )
-from ops_lab.observability.metrics import (
+from tradingchassis_ops_lab.observability.metrics import (
     RunObservabilityError,
     export_run_metrics,
 )
-from ops_lab.observability.serve import serve_metrics
-from ops_lab.reconciliation.checks import ReconciliationError, run_reconciliation_check
-from ops_lab.runs.artifacts import RunArtifactsAlreadyExistError, initialize_run_artifacts
-from ops_lab.runs.backtest import InvalidBacktestModeError, run_backtest_lifecycle
-from ops_lab.runs.hashing import compute_config_sha256
-from ops_lab.runs.journal import append_journal_event, build_run_initialized_event
-from ops_lab.runs.metadata import build_initial_metadata, write_metadata
-from ops_lab.runs.paper import InvalidPaperModeError, run_paper_lifecycle
-from ops_lab.runs.spec import RunSpecLoadError, load_run_spec
-from ops_lab.safety.kill_switch import (
+from tradingchassis_ops_lab.observability.serve import serve_metrics
+from tradingchassis_ops_lab.reconciliation.checks import (
+    ReconciliationError,
+    run_reconciliation_check,
+)
+from tradingchassis_ops_lab.runs.artifacts import (
+    RunArtifactsAlreadyExistError,
+    initialize_run_artifacts,
+)
+from tradingchassis_ops_lab.runs.backtest import InvalidBacktestModeError, run_backtest_lifecycle
+from tradingchassis_ops_lab.runs.hashing import compute_config_sha256
+from tradingchassis_ops_lab.runs.journal import append_journal_event, build_run_initialized_event
+from tradingchassis_ops_lab.runs.metadata import build_initial_metadata, write_metadata
+from tradingchassis_ops_lab.runs.paper import InvalidPaperModeError, run_paper_lifecycle
+from tradingchassis_ops_lab.runs.spec import RunSpecLoadError, load_run_spec
+from tradingchassis_ops_lab.safety.kill_switch import (
     KillSwitchError,
     activate_kill_switch,
     clear_kill_switch,
@@ -161,21 +167,21 @@ def run_paper(spec: Path = typer.Option(..., "--spec", help="Path to run spec YA
 
 
 def _resolve_data_root() -> Path:
-    configured = os.environ.get("OPS_LAB_DATA_ROOT")
+    configured = os.environ.get("TRADINGCHASSIS_OPS_LAB_DATA_ROOT")
     if configured:
         return Path(configured)
     return Path("data")
 
 
 def _resolve_runtime_root() -> Path:
-    configured = os.environ.get("OPS_LAB_RUNTIME_ROOT")
+    configured = os.environ.get("TRADINGCHASSIS_OPS_LAB_RUNTIME_ROOT")
     if configured:
         return Path(configured)
     return Path("runtime/kill_switch")
 
 
 def _resolve_artifacts_root() -> Path:
-    configured = os.environ.get("OPS_LAB_ARTIFACTS_ROOT")
+    configured = os.environ.get("TRADINGCHASSIS_OPS_LAB_ARTIFACTS_ROOT")
     if configured:
         return Path(configured)
     return Path("artifacts/runs")

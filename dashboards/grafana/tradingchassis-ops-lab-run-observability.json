@@ -46,7 +46,7 @@
       },
       "targets": [
         {
-          "expr": "ops_lab_run_info{run_id=\"$run_id\"}",
+          "expr": "tradingchassis_ops_lab_run_info{run_id=\"$run_id\"}",
           "refId": "A"
         }
       ],
@@ -84,7 +84,7 @@
       },
       "targets": [
         {
-          "expr": "ops_lab_run_duration_seconds{run_id=\"$run_id\"}",
+          "expr": "tradingchassis_ops_lab_run_duration_seconds{run_id=\"$run_id\"}",
           "refId": "A"
         }
       ],
@@ -122,7 +122,7 @@
       },
       "targets": [
         {
-          "expr": "ops_lab_backtest_engine_duration_seconds{run_id=\"$run_id\"}",
+          "expr": "tradingchassis_ops_lab_backtest_engine_duration_seconds{run_id=\"$run_id\"}",
           "refId": "A"
         }
       ],
@@ -155,12 +155,12 @@
       },
       "targets": [
         {
-          "expr": "ops_lab_backtest_input_candles_total{run_id=\"$run_id\"}",
+          "expr": "tradingchassis_ops_lab_backtest_input_candles_total{run_id=\"$run_id\"}",
           "legendFormat": "input_candles",
           "refId": "A"
         },
         {
-          "expr": "ops_lab_backtest_bars_processed_total{run_id=\"$run_id\"}",
+          "expr": "tradingchassis_ops_lab_backtest_bars_processed_total{run_id=\"$run_id\"}",
           "legendFormat": "bars_processed",
           "refId": "B"
         }
@@ -199,7 +199,7 @@
       },
       "targets": [
         {
-          "expr": "ops_lab_paper_heartbeat_total{run_id=\"$run_id\"}",
+          "expr": "tradingchassis_ops_lab_paper_heartbeat_total{run_id=\"$run_id\"}",
           "refId": "A"
         }
       ],
@@ -232,7 +232,7 @@
       },
       "targets": [
         {
-          "expr": "ops_lab_journal_event_total{run_id=\"$run_id\"}",
+          "expr": "tradingchassis_ops_lab_journal_event_total{run_id=\"$run_id\"}",
           "legendFormat": "{{event}}",
           "refId": "A"
         }
@@ -258,7 +258,7 @@
           "value": ""
         },
         "datasource": null,
-        "definition": "label_values(ops_lab_run_info, run_id)",
+        "definition": "label_values(tradingchassis_ops_lab_run_info, run_id)",
         "hide": 0,
         "includeAll": false,
         "label": "run_id",
@@ -266,7 +266,7 @@
         "name": "run_id",
         "options": [],
         "query": {
-          "query": "label_values(ops_lab_run_info, run_id)",
+          "query": "label_values(tradingchassis_ops_lab_run_info, run_id)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,

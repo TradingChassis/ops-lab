@@ -5,7 +5,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from ops_lab.runs.spec import RunSpec
+from tradingchassis_ops_lab.runs.spec import RunSpec
 
 
 class RunArtifactsAlreadyExistError(FileExistsError):

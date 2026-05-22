@@ -198,13 +198,13 @@ def render_prometheus_text(artifacts: RunObservabilityArtifacts) -> str:
     ]
 
     lines: list[str] = []
-    _append_metric(lines, name="ops_lab_run_info", labels=run_info_labels, value=1)
+    _append_metric(lines, name="tradingchassis_ops_lab_run_info", labels=run_info_labels, value=1)
 
     created_ts = _parse_iso8601_to_seconds(metadata.get("created_at_utc"))
     if created_ts is not None:
         _append_metric(
             lines,
-            name="ops_lab_run_created_timestamp_seconds",
+            name="tradingchassis_ops_lab_run_created_timestamp_seconds",
             labels=core_labels,
             value=created_ts,
         )
@@ -213,7 +213,7 @@ def render_prometheus_text(artifacts: RunObservabilityArtifacts) -> str:
     if started_ts is not None:
         _append_metric(
             lines,
-            name="ops_lab_run_started_timestamp_seconds",
+            name="tradingchassis_ops_lab_run_started_timestamp_seconds",
             labels=core_labels,
             value=started_ts,
         )
@@ -222,7 +222,7 @@ def render_prometheus_text(artifacts: RunObservabilityArtifacts) -> str:
     if completed_ts is not None:
         _append_metric(
             lines,
-            name="ops_lab_run_completed_timestamp_seconds",
+            name="tradingchassis_ops_lab_run_completed_timestamp_seconds",
             labels=core_labels,
             value=completed_ts,
         )
@@ -230,7 +230,7 @@ def render_prometheus_text(artifacts: RunObservabilityArtifacts) -> str:
     if started_ts is not None and completed_ts is not None:
         _append_metric(
             lines,
-            name="ops_lab_run_duration_seconds",
+            name="tradingchassis_ops_lab_run_duration_seconds",
             labels=core_labels,
             value=max(0.0, completed_ts - started_ts),
         )
@@ -238,21 +238,21 @@ def render_prometheus_text(artifacts: RunObservabilityArtifacts) -> str:
     if isinstance(metrics.get("input_candles_count"), int):
         _append_metric(
             lines,
-            name="ops_lab_backtest_input_candles_total",
+            name="tradingchassis_ops_lab_backtest_input_candles_total",
             labels=core_labels,
             value=metrics["input_candles_count"],
         )
     if isinstance(metrics.get("bars_processed"), int):
         _append_metric(
             lines,
-            name="ops_lab_backtest_bars_processed_total",
+            name="tradingchassis_ops_lab_backtest_bars_processed_total",
             labels=core_labels,
             value=metrics["bars_processed"],
         )
     if isinstance(metrics.get("engine_duration_ms"), (int, float)):
         _append_metric(
             lines,
-            name="ops_lab_backtest_engine_duration_seconds",
+            name="tradingchassis_ops_lab_backtest_engine_duration_seconds",
             labels=core_labels,
             value=float(metrics["engine_duration_ms"]) / 1000.0,
         )
@@ -260,14 +260,14 @@ def render_prometheus_text(artifacts: RunObservabilityArtifacts) -> str:
     if isinstance(metrics.get("heartbeat_count"), int):
         _append_metric(
             lines,
-            name="ops_lab_paper_heartbeat_total",
+            name="tradingchassis_ops_lab_paper_heartbeat_total",
             labels=core_labels,
             value=metrics["heartbeat_count"],
         )
     if isinstance(metrics.get("synthetic_duration_seconds"), (int, float)):
         _append_metric(
             lines,
-            name="ops_lab_paper_synthetic_duration_seconds",
+            name="tradingchassis_ops_lab_paper_synthetic_duration_seconds",
             labels=core_labels,
             value=float(metrics["synthetic_duration_seconds"]),
         )
@@ -275,7 +275,7 @@ def render_prometheus_text(artifacts: RunObservabilityArtifacts) -> str:
     if artifacts.include_journal:
         _append_metric(
             lines,
-            name="ops_lab_journal_events_total",
+            name="tradingchassis_ops_lab_journal_events_total",
             labels=core_labels,
             value=len(artifacts.journal_events),
         )
@@ -288,7 +288,7 @@ def render_prometheus_text(artifacts: RunObservabilityArtifacts) -> str:
         for event_name in sorted(event_counts):
             _append_metric(
                 lines,
-                name="ops_lab_journal_event_total",
+                name="tradingchassis_ops_lab_journal_event_total",
                 labels=core_labels + [("event", event_name)],
                 value=event_counts[event_name],
             )
@@ -302,7 +302,7 @@ def render_prometheus_text(artifacts: RunObservabilityArtifacts) -> str:
             )
         _append_metric(
             lines,
-            name="ops_lab_reconciliation_status",
+            name="tradingchassis_ops_lab_reconciliation_status",
             labels=core_labels + [("status", status)],
             value=1,
         )
@@ -320,7 +320,7 @@ def render_prometheus_text(artifacts: RunObservabilityArtifacts) -> str:
                 )
             _append_metric(
                 lines,
-                name="ops_lab_reconciliation_checks_total",
+                name="tradingchassis_ops_lab_reconciliation_checks_total",
                 labels=core_labels + [("severity", severity)],
                 value=value,
             )
@@ -332,7 +332,7 @@ def render_prometheus_text(artifacts: RunObservabilityArtifacts) -> str:
             )
         _append_metric(
             lines,
-            name="ops_lab_reconciliation_last_timestamp_seconds",
+            name="tradingchassis_ops_lab_reconciliation_last_timestamp_seconds",
             labels=core_labels,
             value=ts_seconds,
         )
@@ -381,12 +381,15 @@ def render_metrics_text(
             )
         except RunObservabilityError:
             return _render_comment_only(
-                f"ops_lab: run_id {run_id} not found or unreadable under {artifacts_root}"
+                "tradingchassis_ops_lab: run_id "
+                f"{run_id} not found or unreadable under {artifacts_root}"
             )
 
     discovered_run_ids = discover_run_ids(artifacts_root)
     if not discovered_run_ids:
-        return _render_comment_only(f"ops_lab: no run artifacts found under {artifacts_root}")
+        return _render_comment_only(
+            f"tradingchassis_ops_lab: no run artifacts found under {artifacts_root}"
+        )
 
     rendered_parts: list[str] = []
     for discovered_run_id in discovered_run_ids:
@@ -402,7 +405,7 @@ def render_metrics_text(
             rendered_parts.append(
                 _render_comment_only(
                     (
-                        "ops_lab: skipped run_id "
+                        "tradingchassis_ops_lab: skipped run_id "
                         f"{discovered_run_id} due to missing or malformed artifacts"
                     )
                 )

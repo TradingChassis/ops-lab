@@ -1,7 +1,11 @@
 """Failure drills package."""
 
-from ops_lab.drills.errors import DrillArtifactsError, DrillError, DrillValidationError
-from ops_lab.drills.executor import (
+from tradingchassis_ops_lab.drills.errors import (
+    DrillArtifactsError,
+    DrillError,
+    DrillValidationError,
+)
+from tradingchassis_ops_lab.drills.executor import (
     execute_reconciliation_mismatch_drill,
     execute_restart_recovery_drill,
     execute_stale_market_data_drill,

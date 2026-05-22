@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 
-from ops_lab.runs.spec import RunSpec, run_spec_to_normalized_dict
+from tradingchassis_ops_lab.runs.spec import RunSpec, run_spec_to_normalized_dict
 
 
 def compute_config_sha256(spec: RunSpec) -> str:

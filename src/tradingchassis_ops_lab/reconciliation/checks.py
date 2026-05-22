@@ -8,7 +8,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
-from ops_lab.runs.journal import append_journal_event
+from tradingchassis_ops_lab.runs.journal import append_journal_event
 
 _SCHEMA_VERSION = "v1"
 _SEVERITY_ORDER = ("ok", "warning", "unknown", "mismatch")

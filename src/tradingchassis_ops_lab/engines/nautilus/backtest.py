@@ -15,7 +15,10 @@ from nautilus_trader.model.enums import AccountType, OmsType
 from nautilus_trader.model.objects import Money
 from nautilus_trader.persistence.wranglers import BarDataWrangler
 
-from ops_lab.engines.nautilus.config import resolve_smoke_bar_type, resolve_smoke_instrument
+from tradingchassis_ops_lab.engines.nautilus.config import (
+    resolve_smoke_bar_type,
+    resolve_smoke_instrument,
+)
 
 
 class PreparedBacktestDatasetNotFoundError(FileNotFoundError):

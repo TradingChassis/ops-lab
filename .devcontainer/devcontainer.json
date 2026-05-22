@@ -13,6 +13,7 @@
   "remoteUser": "root",
   "runArgs": ["--security-opt=label=disable"],
   "forwardPorts": [8000, 9090, 3000],
+  "postCreateCommand": "python -m pip install -e \".[dev]\"",
   "containerEnv": {
     "SHELL": "/bin/bash"
   }

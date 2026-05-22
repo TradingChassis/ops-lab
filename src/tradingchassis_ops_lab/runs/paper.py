@@ -7,12 +7,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from ops_lab.reports.render import render_paper_skeleton_report
-from ops_lab.runs.artifacts import initialize_run_artifacts
-from ops_lab.runs.hashing import compute_config_sha256
-from ops_lab.runs.journal import append_journal_event
-from ops_lab.runs.metadata import build_initial_metadata, write_metadata
-from ops_lab.runs.spec import RunSpec, load_run_spec
+from tradingchassis_ops_lab.reports.render import render_paper_skeleton_report
+from tradingchassis_ops_lab.runs.artifacts import initialize_run_artifacts
+from tradingchassis_ops_lab.runs.hashing import compute_config_sha256
+from tradingchassis_ops_lab.runs.journal import append_journal_event
+from tradingchassis_ops_lab.runs.metadata import build_initial_metadata, write_metadata
+from tradingchassis_ops_lab.runs.spec import RunSpec, load_run_spec
 
 _HEARTBEAT_COUNT = 3
 _SYNTHETIC_DURATION_SECONDS = 3

@@ -17,17 +17,31 @@ def _load_yaml(path: Path) -> dict:
     return loaded
 
 
+_DASHBOARD_DIR = "dashboards/grafana"
+_DASHBOARD_FILENAME = "tradingchassis-ops-lab-run-observability.json"
+_DASHBOARD_BIND_MOUNT = f"../../{_DASHBOARD_DIR}:/var/lib/grafana/dashboards:ro,z"
+
+
 def test_observability_stack_files_exist() -> None:
     root = _repo_root()
+    dashboard_dir = root / _DASHBOARD_DIR
+    dashboard_file = dashboard_dir / _DASHBOARD_FILENAME
     expected = [
         root / "deploy/observability/docker-compose.yml",
         root / "deploy/observability/prometheus/prometheus.yml",
         root / "deploy/observability/grafana/provisioning/datasources/prometheus.yml",
         root / "deploy/observability/grafana/provisioning/dashboards/dashboards.yml",
-        root / "dashboards/grafana/tradingchassis-ops-lab-run-observability.json",
+        dashboard_dir,
+        dashboard_file,
     ]
     for path in expected:
-        assert path.exists(), f"Expected config or dashboard file to exist: {path}"
+        assert path.exists(), f"Expected config or dashboard path to exist: {path}"
+
+    assert dashboard_dir.is_dir(), f"Expected dashboard directory: {dashboard_dir}"
+    assert dashboard_file.is_file(), f"Expected dashboard JSON file: {dashboard_file}"
+    assert not dashboard_file.is_dir(), (
+        f"Dashboard JSON path must be a file, not a directory: {dashboard_file}"
+    )
 
 
 def test_compose_contains_only_prometheus_and_grafana_services() -> None:
@@ -46,15 +60,36 @@ def test_compose_contains_only_prometheus_and_grafana_services() -> None:
     assert "127.0.0.1:${TC_GRAFANA_PORT:-3000}:3000" in grafana.get("ports", [])
     assert "host.docker.internal:host-gateway" in prometheus.get("extra_hosts", [])
 
+    assert prometheus.get("entrypoint") == ["/bin/sh", "-ec"]
+    command = prometheus.get("command")
+    assert isinstance(command, list)
+    joined_command = "\n".join(command)
+    assert "TC_METRICS_TARGET" in joined_command
+    assert "host.docker.internal:8000" in joined_command
+    assert "prometheus.yml.template" in joined_command
+    assert "/tmp/prometheus.yml" in joined_command
+
     prometheus_volumes = prometheus.get("volumes", [])
-    assert "./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro,z" in prometheus_volumes
+    assert (
+        "./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml.template:ro,z"
+        in prometheus_volumes
+    )
 
     grafana_volumes = grafana.get("volumes", [])
     assert "./grafana/provisioning:/etc/grafana/provisioning:ro,z" in grafana_volumes
-    assert (
-        "../../dashboards/grafana/tradingchassis-ops-lab-run-observability.json:"
-        "/var/lib/grafana/dashboards/tradingchassis-ops-lab-run-observability.json:ro,z"
-    ) in grafana_volumes
+    assert _DASHBOARD_BIND_MOUNT in grafana_volumes
+
+
+def test_grafana_dashboard_bind_mount_uses_directory_mount() -> None:
+    compose_path = _repo_root() / "deploy/observability/docker-compose.yml"
+    compose = _load_yaml(compose_path)
+    grafana_volumes = compose["services"]["grafana"]["volumes"]
+    assert _DASHBOARD_BIND_MOUNT in grafana_volumes
+
+    host_path, container_path, mount_opts = _DASHBOARD_BIND_MOUNT.split(":", 2)
+    assert host_path == f"../../{_DASHBOARD_DIR}"
+    assert container_path == "/var/lib/grafana/dashboards"
+    assert mount_opts == "ro,z"
 
 
 def test_prometheus_scrapes_host_metrics_endpoint() -> None:
@@ -65,11 +100,11 @@ def test_prometheus_scrapes_host_metrics_endpoint() -> None:
     assert len(scrape_configs) == 1
 
     scrape_job = scrape_configs[0]
-    assert scrape_job.get("job_name") == "ops_lab_metrics"
+    assert scrape_job.get("job_name") == "tradingchassis_ops_lab_metrics"
 
     static_configs = scrape_job.get("static_configs")
     assert isinstance(static_configs, list)
-    assert static_configs[0].get("targets") == ["host.docker.internal:8000"]
+    assert static_configs[0].get("targets") == ["__TC_METRICS_TARGET__"]
 
 
 def test_grafana_datasource_uses_prometheus_service_url() -> None:
