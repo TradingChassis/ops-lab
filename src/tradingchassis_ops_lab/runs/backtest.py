@@ -77,7 +77,12 @@ def _write_smoke_metrics(
 
 
 def run_backtest_lifecycle(spec_path: Path) -> tuple[Path, str]:
-    """Run minimal NautilusTrader smoke backtest lifecycle and persist artifacts."""
+    """Run minimal NautilusTrader smoke backtest lifecycle and persist artifacts.
+
+    Current behavior intentionally executes an engine smoke path only. RunSpec
+    ``strategy`` fields are recorded for traceability but are not used to load
+    custom strategy behavior in this lifecycle.
+    """
     spec = load_run_spec(spec_path)
     if spec.mode != "backtest":
         raise InvalidBacktestModeError(

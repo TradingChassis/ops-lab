@@ -30,7 +30,7 @@ For context, see [Architecture](architecture.md), [Run model](run-model.md), [Li
 | Capability area | Current implementation | Gap | Recommended direction |
 |---|---|---|---|
 | Run control and reproducibility | RunSpec validation, config hash, artifact contract, metadata, journal, and reports are in place (`implemented`) | Data fingerprint is not yet automatically linked into run metadata; event and artifact semantics can be clearer | Keep schema stable; document reproducibility workflow and artifact/journal reference conventions |
-| Engine integration | Nautilus smoke backtest and paper lifecycle skeleton exist (`implemented`/`partial`) | Backtest scenarios are narrow; paper path remains synthetic with no connectivity or runtime-state ingestion | Expand deterministic scenario coverage first; defer connectivity to the Paper/Testnet Connectivity Probe milestone now that `0.2.0` and `0.3.0` baselines are delivered |
+| Engine integration | Nautilus smoke backtest and paper lifecycle skeleton exist (`implemented`/`partial`) | Backtest scenarios are narrow; paper path remains synthetic with no connectivity or runtime-state ingestion | Land `0.4.0` backtest scenario/contract clarity first, then defer connectivity to the Paper/Testnet Connectivity Probe milestone |
 | Data layer | Fixture-backed prepare and fingerprint are in place (`implemented`) | No real historical import pipeline and no dedicated data quality checks | Preserve local deterministic fixtures now; add QA and import paths only after core ops gaps close |
 | Observability | `tc metrics serve` plus local Prometheus/Grafana Compose stack and provisioning are in place (`implemented`) | Alerting and deeper operational rule coverage are not in scope yet | Keep the current local stack stable; add only narrow follow-up hardening post-0.3.0 |
 | Safety and control | File-based kill switch is integrated into paper lifecycle state checks with artifact-backed visibility (`implemented`) | Scope intentionally remains local and file-based with no order cancellation/flattening | Keep the deterministic local safety gate stable while documenting boundaries before connectivity work |
@@ -165,6 +165,27 @@ Explicitly not included:
 
 ## Near-term milestones
 
+### 0.4.0 Local Backtest Scenario / Strategy Contract (planned)
+
+Goal:
+
+- Clarify the backtest/strategy contract and keep local smoke usage concrete without expanding into alpha or plugin scope.
+
+Includes:
+
+- clear docs for strategy-as-scenario metadata semantics (`strategy.name`/`strategy.version`)
+- one canonical local smoke scenario identity (`ops_smoke_demo`) across examples/tests/docs
+- explicit current-state wording: Nautilus engine smoke path over prepared 1-minute candles
+- explicit deferred wording for custom strategy loading and plugin-style extension
+
+Explicitly not included:
+
+- dynamic custom strategy loading/plugin framework
+- strategy optimization/parameter sweeps
+- orderbook / LOB data support
+- exchange/testnet/live connectivity
+- profitability/alpha claims
+
 ### 1. Paper/Testnet Connectivity Probe
 
 Goal:
@@ -248,6 +269,7 @@ Intentionally not next:
 
 ## Current recommended sequence
 
-1. Paper/Testnet Connectivity Probe
-2. Expanded Failure Modes
-3. Kubernetes / GitOps Lab
+1. `0.4.0` Local Backtest Scenario / Strategy Contract
+2. Paper/Testnet Connectivity Probe
+3. Expanded Failure Modes
+4. Kubernetes / GitOps Lab

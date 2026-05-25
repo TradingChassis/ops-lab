@@ -5,6 +5,15 @@ All notable changes to `TradingChassis Ops Lab` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Renamed example RunSpec scenario identity from `toy_mean_reversion` to `ops_smoke_demo` to avoid implying a real alpha strategy implementation.
+- Clarified docs and RunSpec model comments that current `strategy` fields are scenario identity/traceability metadata and do not dynamically load custom strategy code.
+- Clarified docs that `data.fingerprint` and `observability.*` are currently metadata/reserved fields, and current lifecycle paths still emit standard artifact sets.
+- Roadmap now positions `0.4.0 Local Backtest Scenario / Strategy Contract` before Paper/Testnet Connectivity Probe.
+
 ## [0.3.0]
 
 ### Added

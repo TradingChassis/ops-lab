@@ -56,7 +56,12 @@ def run_nautilus_backtest_smoke(
     instrument: str,
     data_root: Path = Path("data"),
 ) -> NautilusSmokeBacktestResult:
-    """Execute the smallest direct BacktestEngine smoke backtest."""
+    """Execute the smallest direct BacktestEngine smoke backtest.
+
+    This path intentionally runs without registering a Nautilus strategy. It is
+    used to validate local backtest lifecycle plumbing and deterministic
+    artifact generation over prepared candle bars.
+    """
     candles = _load_prepared_candles(dataset=dataset, data_root=data_root)
     input_candles_count = len(candles.index)
     if input_candles_count == 0:

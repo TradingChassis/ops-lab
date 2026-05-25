@@ -20,7 +20,13 @@ class StrictBaseModel(BaseModel):
 
 
 class StrategySpec(StrictBaseModel):
-    """Strategy metadata for the v1 run spec."""
+    """Scenario identity metadata for the v1 run spec.
+
+    This model is intentionally metadata-only in the current implementation:
+    values are used for traceability in run metadata and config hashing, not
+    dynamic custom strategy loading. Future built-in scenario wiring may use
+    ``name`` as a stable scenario identifier.
+    """
 
     name: str
     version: str
@@ -37,7 +43,11 @@ class StrategySpec(StrictBaseModel):
 
 
 class DataSpec(StrictBaseModel):
-    """Dataset reference and placeholder fingerprint."""
+    """Dataset reference and optional fingerprint metadata.
+
+    ``fingerprint`` is currently traceability metadata and is not enforced as
+    a runtime gate by backtest/paper execution paths.
+    """
 
     dataset: str
     fingerprint: str | None = None
@@ -80,7 +90,11 @@ class RiskSpec(StrictBaseModel):
 
 
 class ObservabilitySpec(StrictBaseModel):
-    """Simple observability toggles for the v1 run spec."""
+    """Observability preference metadata for the v1 run spec.
+
+    These fields are currently recorded in run metadata but do not disable
+    artifact generation in the active lifecycle implementations.
+    """
 
     journal: bool = True
     metrics: bool = False

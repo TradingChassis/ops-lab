@@ -35,6 +35,10 @@ Expected artifact locations:
 tc run backtest --spec examples/configs/btcusdt_backtest.yaml
 ```
 
+This backtest remains an engine smoke run over prepared 1-minute candles. The spec's
+`strategy.name` (for example `ops_smoke_demo`) is currently scenario identity metadata,
+not dynamic custom strategy loading.
+
 Expected artifact location:
 
 - `artifacts/runs/2026-05-20-btcusdt-backtest-001/`
