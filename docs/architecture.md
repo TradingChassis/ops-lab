@@ -34,6 +34,7 @@ flowchart LR
 - Captures immutable run inputs (configuration and references)
 - Serves as the versioned source of truth for a run
 - Includes reserved local-only `connectivity_readiness` metadata for env-placeholder preflight intent
+- Uses venue labels in examples (`binance`, `binance_testnet`) for run metadata and future probe intent only, not active exchange/testnet/live connectivity
 
 ### Nautilus Run Mode
 
@@ -42,6 +43,7 @@ flowchart LR
 - Produces run lifecycle events for downstream tracking
 - Backtest mode currently executes a Nautilus engine smoke path over prepared 1-minute candles
 - Backtest currently registers one built-in local scenario strategy (`ops_smoke_demo`)
+- Backtest `venue: binance` currently maps to Nautilus test instrument context plus local candle fixtures
 - RunSpec `strategy` fields are currently scenario identity metadata, not custom strategy loading
 
 ### Journal / Metadata / Artifacts
@@ -56,6 +58,7 @@ flowchart LR
   - `artifacts/runs/<run_id>/metrics.json`
   - `artifacts/runs/<run_id>/report.md`
   - `artifacts/runs/<run_id>/connectivity_readiness.json` (when readiness is evaluated)
+  - `artifacts/runs/<run_id>/connectivity_probe.json` (when loopback probe is evaluated)
 
 ### Reports / Observability
 
@@ -63,6 +66,7 @@ flowchart LR
 - Observability hooks expose basic signals for health and run progress
 - Designed for practical inspection, not full production telemetry
 - Readiness metrics are artifact-backed from `connectivity_readiness.json`; they do not perform network probes
+- Probe metrics are artifact-backed from `connectivity_probe.json`; probe execution remains local loopback-only and read-only
 - Static dashboard definition: `dashboards/grafana/tradingchassis-ops-lab-run-observability.json`
 
 ### Safety / Reconciliation / Drills

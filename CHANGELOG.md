@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0]
+
+### Added
+
+- Grafana connectivity readiness dashboard panel: `Connectivity Readiness`.
+- Local loopback-only connectivity probe command:
+  - `tc connectivity probe --spec <path> --url <loopback-url> [--timeout-ms <int>]`
+- Deterministic probe artifact output: `artifacts/runs/<run_id>/connectivity_probe.json`.
+- Metadata probe summary patch under `metadata["connectivity_probe"]`.
+- Journal event append: `connectivity_probe_evaluated`.
+- Report probe section update behavior when `report.md` already exists.
+- Artifact-backed probe Prometheus metrics:
+  - `tradingchassis_ops_lab_connectivity_probe_state`
+  - `tradingchassis_ops_lab_connectivity_probe_performed`
+  - `tradingchassis_ops_lab_connectivity_probe_latency_seconds`
+  - `tradingchassis_ops_lab_connectivity_probe_http_status`
+- Grafana probe panels:
+  - `Connectivity Probe State`
+  - `Connectivity Probe Latency`
+- Local probe docs/demo flow updates for loopback probe workflow and artifact inspection.
+- Connectivity probe failure runbook: `docs/runbooks/connectivity-probe-failed.md`.
+
+### Changed
+
+- Clarified docs wording that `binance` / `binance_testnet` are RunSpec venue labels and do not imply active external connectivity.
+- Expanded Quickstart and Demo Flow with local loopback probe workflow and artifact inspection path.
+- Clarified probe metrics caveat: `tc metrics export` still requires `metrics.json`; init+probe alone does not create it.
+
+### Notes
+
+- `0.6.0` is the local loopback connectivity probe milestone.
+- Probe is local-only and loopback-only; no real Binance/testnet/live connectivity is included.
+- No non-loopback network access is included.
+- Probe remains read-only and does not submit/cancel/flatten orders.
+- No account/balance/position fetching is included.
+- No signed endpoint handling is included.
+- No credential validation is included.
+- Probe artifacts/metadata/journal/report and probe metrics do not store response body.
+- No adapter framework is included.
+- No Kubernetes/GitOps work is included.
+
 ## [0.5.0]
 
 ### Added
